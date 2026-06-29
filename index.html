@@ -579,6 +579,7 @@ body.light .l-block strong{color:#06203f}
 .mm-princ{text-align:center;padding:10px 6px;font-size:11px;line-height:1.5;color:var(--text2)}
 .mm-princ .mm-pico{font-size:22px;display:block;margin-bottom:6px}
 .mm-princ strong{color:var(--text);display:block;font-size:11.5px;margin-bottom:2px}
+.page-inner{padding:4px 0 40px;}
 </style>
 <script>
 window.onerror=function(msg,src,line,col,err){
@@ -2556,6 +2557,10 @@ const t=k=>I18N[lang][k]||k;
 
 /* ════════════════ NAV ════════════════ */
 function goto(id){
+  // Render guided-study pages if needed
+  if(id==='howto'||id==='diag'||id==='plan'){
+    if(typeof window.gotoPage==='function'){window.gotoPage(id);return;}
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>{
@@ -5286,11 +5291,16 @@ window.gotoPage=function(id){
     if(pg){
       pg.classList.add('active');
       rerenderPage(id);
-      document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+      document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');n.removeAttribute('aria-current');});
       var nav=document.querySelector('.nav-item[data-page="'+id+'"]');
-      if(nav) nav.classList.add('active');
-      var mc=document.querySelector('.main-content');
-      if(mc) mc.scrollTo(0,0);
+      if(nav){nav.classList.add('active');nav.setAttribute('aria-current','page');}
+      // Close mobile sidebar
+      var sb=document.getElementById('sidebar');
+      var scrim=document.getElementById('scrim');
+      if(sb) sb.classList.remove('open');
+      if(scrim) scrim.classList.remove('show');
+      // Scroll to top
+      window.scrollTo({top:0,behavior:'smooth'});
     }
     return;
   }
@@ -5303,6 +5313,12 @@ function gsStartPlan(){var s=gsLoad();s.planStart=new Date().toISOString();s.act
 (function(){
   var _orig=window.goto;
   window.goto=function(id,extra){
+    // Intercept guided-study pages BEFORE passing to original goto
+    var guided=['howto','diag','plan'];
+    if(guided.indexOf(id)>=0){
+      window.gotoPage(id);
+      return;
+    }
     if(typeof _orig==='function') _orig(id,extra);
     if(id==='home') setTimeout(function(){refreshNBA();updateReadinessScore();},120);
   };
